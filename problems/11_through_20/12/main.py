@@ -19,73 +19,117 @@ We can see that 28 is the first triangle number to have over five divisors.
 What is the value of the first triangle number to have over five hundred divisors?
 '''
 
-def product(list):
-    result = 1
-    for x in list:
-        result *= x
-    return result
+# TODO: Use this algorithm once you understand it
+# https://www.geeksforgeeks.org/first-triangular-number-whose-number-of-divisors-exceeds-n/
 
-def merge(a, b):
-    from collections import Counter
-    na, nb = Counter(a), Counter(b)
-    return list(Counter({k: max((na[k], nb[k])) for k in set(a + b)}).elements())
+def printResult(number, triangle_number, divisors):
+    number_suffix = ''
+    if str(number)[-1] == '1':
+        number_suffix = 'st'
+    elif str(number)[-1] == '2':
+        number_suffix = 'nd'
+    elif str(number)[-1] == '3':
+        number_suffix = 'rd'
+    else:
+        number_suffix = 'th'
+    
+    print('The ' + str(number) + number_suffix + ' triangle number (' + str(triangle_number) + ') is the first triangle number to have at least ' + str(len(divisors)) + ' divisors')
+    print(divisors)
 
-def get_primes():
-    import math
-    yield 2
-    previous_primes = [2]
+def getDivisors(triangle_number):
+    if triangle_number == 1:
+        return [1]
 
-    p = 3
+    if triangle_number == 3:
+        return [1, 3]
+
+    divisors = set([])
+    number = triangle_number
+
+    for divisor in range(1, number // 2):
+        if number % divisor == 0:
+            divisors.add(divisor)
+            divisors.add(number // divisor)
+    return sorted(list(divisors))
+
+def bruteForce(required_number_of_divisors):
+    triangle_number = 0
+    number = 1
     while True:
-        max_check = math.ceil(math.sqrt(p))
-        primes_to_check = [p % x == 0 for x in previous_primes if x <= max_check]
+        triangle_number += number
 
-        if not any(primes_to_check):
-            yield p
-            previous_primes.append(p)
+        divisors = getDivisors(triangle_number)
+        if len(divisors) >= required_number_of_divisors:
+            printResult(number, triangle_number, divisors)
+            return
 
-        p += 2
+        number += 1
 
-def get_prime_factors(number):
-    factors = []
-    
-    for prime in get_primes():
-        while number % prime == 0:
-            number //= prime
-            factors.append(prime)
+def prime_generator():
+    yield 2
+    n = 3
+    while True:
+        for x in range(2, n):
+            if n % x == 0:
+                break
+        else:
+            yield n
+        n += 2
+
+def populateCompositeDividers(number, prime_dividers, divisors = set([])):
+    if number == 1:
+        return
+
+    divisors.add(number)
+
+    for prime_divider in prime_dividers:
+        if number % prime_divider == 0:
+            populateCompositeDividers(number // prime_divider, prime_dividers, divisors)
+
+
+def brains(required_number_of_divisors):
+    triangle_number = 0
+    number = 0
+    prime_iterator = prime_generator()
+    primes_to_check = [next(prime_iterator)]
+
+    divisors = set([])
+    prime_dividers = []
+    while len(divisors) < required_number_of_divisors:
+        divisors.clear()
+        prime_dividers.clear()
+        number += 1
+        triangle_number += number
+
+        # 1 and itself
+        divisors.add(1)
+        divisors.add(triangle_number)
+        while primes_to_check[-1] < number:
+            primes_to_check.append(next(prime_iterator))
         
-        if number == 1:
-            return factors
-
-def approximate_reverse_arithmetic_sum(arithmetic_sum):
-    import math
-    return math.floor(math.sqrt(arithmetic_sum * 2))
-
-def get_arithmetic_sum(i):
-    return (i**2 + i) // 2
-
-def get_number_of_divisors(number):
-    prime_factors = get_prime_factors(number)
+        # All the primes
+        prime_dividers = list([prime_to_check for prime_to_check in primes_to_check if triangle_number % prime_to_check == 0])
+        for prime_divider in prime_dividers:
+            divisors.add(prime_divider)
+        
+        # All composite numbers
+        composite_dividers = set([])
+        populateCompositeDividers(triangle_number, prime_dividers, composite_dividers)
+        for composite_divider in composite_dividers:
+            divisors.add(composite_divider)
     
-    result = 1
-    for prime in set(prime_factors):
-        result *= (prime_factors.count(prime) + 1)
-
-    return result
+    printResult(number, triangle_number, sorted(list(divisors)))
 
 if __name__ == '__main__':
-    required_number_of_divisors = 500
-    
-    index = 1
-    while index < 100:
-        triangle_number = get_arithmetic_sum(index)
+    required_number_of_divisors = 501
 
-        # TODO: Use this algorithm once you understand it
-        # https://www.geeksforgeeks.org/first-triangular-number-whose-number-of-divisors-exceeds-n/
-        number_of_divisors = get_number_of_divisors(triangle_number)
-        print(number_of_divisors)
+    import time
+    # start_1 = time.perf_counter()
+    # bruteForce(required_number_of_divisors)
+    # end_1 = time.perf_counter()
+    start_2 = time.perf_counter()
+    brains(required_number_of_divisors)
+    end_2 = time.perf_counter()
 
-        if number_of_divisors > required_number_of_divisors:
-            print(triangle_number)
-            break
-        index += 1
+    # print(end_1 - start_1)
+    print(end_2 - start_2)
